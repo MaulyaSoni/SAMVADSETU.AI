@@ -1,5 +1,5 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -13,12 +13,12 @@ export default function Home() {
       <nav className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="font-bold text-2xl">
-            <span className="text-primary">Sign</span>
-            <span className="text-foreground">Bridge</span>
+            <span className="text-primary">Samvad</span>
+            <span className="text-foreground">Setu</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <Link href="/recognize" className="text-muted-foreground hover:text-primary transition-colors">
-              Translate
+              Recognize
             </Link>
             <Link href="/collect" className="text-muted-foreground hover:text-primary transition-colors">
               Collect Data
@@ -42,14 +42,14 @@ export default function Home() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-primary">AI-Powered Communication</span>
+            <span className="text-sm font-medium text-primary">CNN-Powered Hand Gesture Recognition</span>
           </div>
 
           {/* Main heading */}
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-balance">
-            Breaking Barriers with{" "}
+            Real-time{" "}
             <span className="text-primary relative">
-              Sign Language
+              Hand Gesture
               <svg
                 className="absolute -bottom-2 left-0 w-full h-3 text-primary/30"
                 viewBox="0 0 200 12"
@@ -64,20 +64,20 @@ export default function Home() {
                 />
               </svg>
             </span>{" "}
-            Translation
+            Recognition
           </h1>
 
           {/* Subtitle */}
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-            SignBridge uses advanced machine learning to convert sign language gestures into text in real-time.
-            Empowering deaf and hard-of-hearing individuals to communicate effortlessly.
+            SamvadSetu uses advanced Convolutional Neural Networks to recognize hand gestures in real-time.
+            Empowering gesture-based communication with high accuracy and instant feedback.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Link href="/recognize">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-12 text-lg">
-                Start Translating
+                Start Recognizing
                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
