@@ -5,7 +5,66 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+# === SamvadSetu Project Structure ===
+# Ignore datasets and data folders
+data/
+datasets/
+*.jpg
+*.jpeg
+*.png
+*.bmp
 
+# Ignore big models and model artifacts
+models/*.h5
+models/*.onnx
+models/*.tflite
+models/*.pb
+public/models/
+public/tfjs/
+
+# Ignore temp and cache files
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+tmp/
+temp/
+.cache/
+.parcel-cache/
+
+# Ignore environments
+env/
+.venv/
+.env
+.env.*
+
+# Ignore node and build outputs
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.nyc_output/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.tgz
+*.tar.gz
+
+# Only track notebooks, code, and docs
+!notebooks/
+!app/
+!components/
+!lib/
+!hooks/
+!scripts/
+!README.md
+!*.md
 # Production builds
 .next/
 out/
@@ -95,6 +154,28 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Ignore datasets
+data/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+
+# Ignore big models
+models/*.h5
+models/*.onnx
+models/*.tflite
+models/*.pb
+
+# Ignore temp files
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+
+# Ignore environment
+env/
+.venv/
 
 # Logs
 logs
