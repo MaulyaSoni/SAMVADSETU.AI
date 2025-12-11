@@ -21,7 +21,7 @@ export async function loadModelMetadata(): Promise<ModelMetadata> {
     const response = await fetch("/models/model_metadata.json")
     cachedMetadata = await response.json()
     console.log("[v0] Model metadata loaded:", cachedMetadata)
-    return cachedMetadata
+    return cachedMetadata as ModelMetadata
   } catch (error) {
     console.error("[v0] Error loading model metadata:", error)
     throw error

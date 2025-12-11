@@ -15,6 +15,21 @@ export interface ClassifierModel {
   accuracy: number
 }
 
+export interface ASLPrediction {
+  success: boolean
+  prediction: {
+    class: string
+    confidence: string
+    index: number
+  }
+  topPredictions: Array<{
+    class: string
+    probability: string
+    index: number
+  }>
+  timestamp: string
+}
+
 // Built-in gesture templates for common signs
 // These are normalized landmark patterns that can be matched
 export const GESTURE_TEMPLATES: Record<string, { description: string; fingerStates: number[] }> = {
@@ -233,4 +248,146 @@ export function getTotalSamples(): number {
     total += samples.length
   }
   return total
+}
+
+/**
+ * Recognize ASL alphabet letter from image using trained model
+ * @param imageBase64 - Base64 encoded image data
+ * @returns Promise<ASLPrediction>
+ */
+export async function recognizeASLAlphabet(imageBase64: string): Promise<ASLPrediction> {
+  try {
+    // Send to API with base64 image
+    // Processing will happen client-side in the image component
+    const response = await fetch("/api/recognize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        imageBase64: imageBase64,
+      }),
+    });
+
+    if (!response.ok) {
+      // If server-side processing fails, try client-side
+      if (response.status === 501) {
+        // Use client-side TensorFlow.js processing
+        return await recognizeASLAlphabetClientSide(imageBase64);
+      }
+      throw new Error(`API error: ${response.statusText}`);
+    }
+
+    const data: ASLPrediction = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error in server-side recognition, trying client-side:", error);
+    // Fallback to client-side processing
+    return await recognizeASLAlphabetClientSide(imageBase64);
+  }
+}
+
+/**
+ * Client-side ASL recognition using TensorFlow.js
+ */
+async function recognizeASLAlphabetClientSide(imageBase64: string): Promise<ASLPrediction> {
+  try {
+    const tf = await import("@tensorflow/tfjs");
+
+    // Create image element from base64
+    const img = new Image();
+    img.src = imageBase64;
+
+    await new Promise((resolve) => {
+      img.onload = resolve;
+    });
+
+    // Convert image to tensor
+    const canvas = document.createElement("canvas");
+    canvas.width = 160;
+    canvas.height = 160;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get canvas context");
+
+    ctx.drawImage(img, 0, 0, 160, 160);
+
+    const imgTensor = tf.browser.fromPixels(canvas, 3);
+
+    // Normalize to [0, 1]
+    const normalized = imgTensor.div(255.0) as tf.Tensor;
+
+    // Add batch dimension
+    const input = normalized.expandDims(0);
+
+    // Load model
+    const model = await tf.loadGraphModel("file://./notebooks/models/saved_model/model.json");
+
+    // Run inference
+    const output = model.predict(input) as tf.Tensor;
+    const probabilities = await output.data();
+
+    // Get labels
+    const labelsResponse = await fetch("/data/models/labels.json");
+    const labelsData = await labelsResponse.json();
+    const labels = labelsData.classes || [];
+
+    // Find top prediction
+    let maxProb = 0;
+    let predictedIndex = 0;
+
+    for (let i = 0; i < probabilities.length; i++) {
+      if (probabilities[i] > maxProb) {
+        maxProb = probabilities[i];
+        predictedIndex = i;
+      }
+    }
+
+    const predictedClass = labels[predictedIndex] || "unknown";
+    const confidence = (maxProb * 100).toFixed(2);
+
+    // Get top 3 predictions
+    const topN = 3;
+    const predictions = Array.from(probabilities)
+      .map((prob, idx) => ({
+        class: labels[idx],
+        probability: (prob * 100).toFixed(2),
+        index: idx,
+      }))
+      .sort((a, b) => parseFloat(b.probability) - parseFloat(a.probability))
+      .slice(0, topN);
+
+    // Cleanup
+    imgTensor.dispose();
+    normalized.dispose();
+    input.dispose();
+    output.dispose();
+
+    return {
+      success: true,
+      prediction: {
+        class: predictedClass,
+        confidence: confidence,
+        index: predictedIndex,
+      },
+      topPredictions: predictions,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Client-side recognition error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get ASL class names
+ */
+export async function getASLClassNames(): Promise<string[]> {
+  try {
+    const response = await fetch("/data/models/labels.json")
+    const data = await response.json()
+    return data.classes || []
+  } catch (error) {
+    console.error("Error loading ASL classes:", error)
+    return []
+  }
 }

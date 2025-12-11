@@ -45,7 +45,7 @@ export default function CollectPage() {
   const handleHandDetected = useCallback(
     async (detection: HandDetectionResult, features: number[]) => {
       if (!isCapturing || !gestureName.trim()) return
-      if (!detection.detected || features.length !== 63) return
+      if (!detection.landmarks || features.length !== 63) return
 
       captureCountRef.current++
       const progress = (captureCountRef.current / maxCaptures) * 100

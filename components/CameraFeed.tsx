@@ -12,7 +12,7 @@ export default function CameraFeed({ onFrameCapture, isActive = true }: CameraFe
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const captureIntervalRef = useRef<NodeJS.Timeout>();
+  const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!isActive) return;
