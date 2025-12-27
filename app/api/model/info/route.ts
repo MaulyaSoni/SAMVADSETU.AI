@@ -1,31 +1,40 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { promises as fs } from "fs"
-import path from "path"
+import { getModelMetadata, getAllModels } from "@/lib/model-config-server"
 
 export async function GET(request: NextRequest) {
   try {
-    const metadataPath = path.join(process.cwd(), "public", "models", "model_metadata.json")
+    const { searchParams } = new URL(request.url)
+    const modelId = searchParams.get("model") || "default"
+    const listAll = searchParams.get("list") === "true"
 
-    let metadata = null
-    try {
-      const content = await fs.readFile(metadataPath, "utf-8")
-      metadata = JSON.parse(content)
-    } catch (err) {
-      console.error("Error reading model metadata:", err)
+    if (listAll) {
+      const allModels = await getAllModels()
+      return NextResponse.json({
+        success: true,
+        models: allModels.map((m) => ({
+          id: m.id,
+          name: m.name,
+          type: m.type,
+          accuracy: m.accuracy,
+          num_gestures: m.num_gestures,
+          training_date: m.training_date,
+        })),
+      })
     }
 
+    const modelInfo = await getModelMetadata(modelId)
+
     return NextResponse.json({
-      success: true,
-      modelLoaded: metadata !== null,
-      metadata: metadata || {
-        gesture_classes: [],
-        accuracy: 0,
-        model_type: "LSTM",
-        training_date: "Not trained yet",
-      },
+      success: modelInfo.success,
+      error: modelInfo.error,
+      modelLoaded: modelInfo.success,
+      metadata: modelInfo.metadata,
     })
   } catch (error) {
     console.error("Model info error:", error)
-    return NextResponse.json({ error: "Failed to get model info" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to get model info", success: false },
+      { status: 500 }
+    )
   }
 }

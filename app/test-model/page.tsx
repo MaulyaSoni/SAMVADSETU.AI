@@ -14,8 +14,9 @@ export default function ModelTest() {
           const model = await tf.loadGraphModel('/models/model.json')
           setStatus('✓ Model loaded successfully')
           console.log('✓ Model loaded')
-        } catch (err) {
-          setStatus(`Model loading failed: ${err.message}`)
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          setStatus(`Model loading failed: ${errMsg}`)
           console.error('Model failed:', err)
         }
 
@@ -25,11 +26,13 @@ export default function ModelTest() {
           const data = await resp.json()
           setStatus(`✓ Model + Labels (${data.classes.length} classes)`)
           console.log('✓ Labels loaded:', data.classes.length)
-        } catch (err) {
-          setStatus(`Labels failed: ${err.message}`)
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          setStatus(`Labels failed: ${errMsg}`)
         }
-      } catch (err) {
-        setStatus(`Error: ${err.message}`)
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        setStatus(`Error: ${errMsg}`)
       }
     }
 

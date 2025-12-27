@@ -175,70 +175,105 @@ export function ASLRecognizer({ onRecognition, autoCapture = false }: ASLRecogni
       canvas.height = video.videoHeight
       ctx.drawImage(video, 0, 0)
 
-      // Convert canvas to tensor
-      const tf = await import("@tensorflow/tfjs")
-      const imgTensor = tf.browser.fromPixels(canvas, 3)
+      // Get image as base64
+      const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1]
+      
+      // Try backend API first
+      let result = null
+      try {
+        const response = await fetch("http://localhost:5000/api/models/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image: imageBase64,
+            model: "asl_alphabet",
+            confidence_threshold: 0.5,
+          }),
+        })
 
-      // Resize to 160x160
-      const resized = tf.image.resizeBilinear(imgTensor, [160, 160])
-
-      // Normalize to [0, 1]
-      const normalized = resized.div(255.0) as any
-
-      // Add batch dimension
-      const input = normalized.expandDims(0)
-
-      // Run inference
-      const output = model.predict(input) as any
-      const probabilities = await output.data()
-
-      // Find top prediction
-      let maxProb = 0
-      let predictedIndex = 0
-
-      for (let i = 0; i < probabilities.length; i++) {
-        if (probabilities[i] > maxProb) {
-          maxProb = probabilities[i]
-          predictedIndex = i
+        if (response.ok) {
+          const apiResult = await response.json()
+          if (apiResult.success) {
+            result = {
+              success: true,
+              prediction: {
+                class: apiResult.prediction,
+                confidence: (apiResult.confidence * 100).toFixed(2),
+              },
+              topPredictions: Object.entries(apiResult.all_predictions)
+                .map(([gesture, prob]: [string, any]) => ({
+                  class: gesture,
+                  probability: (prob * 100).toFixed(2),
+                }))
+                .sort((a: any, b: any) => parseFloat(b.probability) - parseFloat(a.probability))
+                .slice(0, 3),
+              timestamp: new Date().toISOString(),
+              model: "backend_api",
+            }
+          }
         }
+      } catch (apiError) {
+        console.warn("Backend API unavailable, falling back to client-side inference:", apiError)
       }
 
-      const predictedClass = labels[predictedIndex] || "unknown"
-      const confidence = (maxProb * 100).toFixed(2)
+      // Fallback to client-side inference if backend unavailable
+      if (!result) {
+        const tf = await import("@tensorflow/tfjs")
+        const imgTensor = tf.browser.fromPixels(canvas, 3)
+        const resized = tf.image.resizeBilinear(imgTensor, [160, 160])
+        const normalized = resized.div(255.0) as any
+        const input = normalized.expandDims(0)
 
-      // Get top 3 predictions
-      const topN = 3
-      const predictions = Array.from(probabilities)
-        .map((prob: any, idx: number) => ({
-          class: labels[idx],
-          probability: (prob * 100).toFixed(2),
-          index: idx,
-        }))
-        .sort((a: any, b: any) => parseFloat(b.probability) - parseFloat(a.probability))
-        .slice(0, topN)
+        const output = model.predict(input) as any
+        const probabilities = await output.data()
 
-      const result: ASLPrediction = {
-        success: true,
-        prediction: {
-          class: predictedClass,
-          confidence: confidence,
-          index: predictedIndex,
-        },
-        topPredictions: predictions,
-        timestamp: new Date().toISOString(),
+        let maxProb = 0
+        let predictedIndex = 0
+
+        for (let i = 0; i < probabilities.length; i++) {
+          if (probabilities[i] > maxProb) {
+            maxProb = probabilities[i]
+            predictedIndex = i
+          }
+        }
+
+        const predictedClass = labels[predictedIndex] || "unknown"
+
+        const topN = 3
+        const predictions = Array.from(probabilities)
+          .map((prob: any, idx: number) => ({
+            class: labels[idx],
+            probability: (prob * 100).toFixed(2),
+            index: idx,
+          }))
+          .sort((a: any, b: any) => parseFloat(b.probability) - parseFloat(a.probability))
+          .slice(0, topN)
+
+        result = {
+          success: true,
+          prediction: {
+            class: predictedClass,
+            confidence: (maxProb * 100).toFixed(2),
+            index: predictedIndex,
+          },
+          topPredictions: predictions,
+          timestamp: new Date().toISOString(),
+          model: "client_side",
+        }
+
+        imgTensor.dispose()
+        resized.dispose()
+        normalized.dispose()
+        input.dispose()
+        output.dispose()
       }
 
       setPrediction(result)
       if (onRecognition) {
         onRecognition(result)
       }
-
-      // Cleanup
-      imgTensor.dispose()
-      resized.dispose()
-      normalized.dispose()
-      input.dispose()
-      output.dispose()
     } catch (err: any) {
       console.error("Recognition error:", err)
       setError(`Recognition failed: ${err.message}`)
