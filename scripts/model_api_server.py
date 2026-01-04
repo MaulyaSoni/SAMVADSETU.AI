@@ -31,13 +31,15 @@ class UnifiedModelLoader:
     def __init__(self):
         self.models = {}
         self.model_configs = {}
-        self.models_dir = Path(__file__).parent / "notebooks" / "Saved_models"
+        # Path should go up one level from scripts/ to reach notebooks/
+        self.models_dir = Path(__file__).parent.parent / "notebooks" / "Saved_models"
         self.load_all_models()
     
     def load_all_models(self):
         """Load all available models"""
         model_files = {
-            "asl_alphabet": "final_asl_model-training-optimized.keras",
+            # TEMPORARILY DISABLED: ASL model has batch normalization architecture issue
+            # "asl_alphabet": "final_asl_model-training-optimized.keras",
             "sign_mnist": "final_sign_mnist_cnn.keras",
             "hagrid": "HAGRID_best_model.keras",
         }
@@ -47,12 +49,24 @@ class UnifiedModelLoader:
             if model_path.exists():
                 try:
                     print(f"[INFO] Loading {model_name} from {filename}...")
-                    model = tf.keras.models.load_model(str(model_path), compile=False)
+                    # Try standard loading first
+                    try:
+                        model = tf.keras.models.load_model(str(model_path), compile=False)
+                    except Exception as e:
+                        # Try with safe_mode=False for compatibility issues
+                        print(f"[WARNING] Standard load failed, trying safe_mode=False...")
+                        try:
+                            model = tf.keras.models.load_model(str(model_path), compile=False, safe_mode=False)
+                        except Exception as e2:
+                            # Skip this model if all loading methods fail
+                            raise Exception(f"Both loading methods failed: {e} | {e2}")
                     self.models[model_name] = model
                     self.model_configs[model_name] = self._get_model_info(model, model_name)
                     print(f"[SUCCESS] {model_name} loaded successfully")
                 except Exception as e:
-                    print(f"[WARNING] Failed to load {model_name}: {e}")
+                    print(f"[ERROR] Failed to load {model_name}: {str(e)[:100]}")
+                    # Continue with next model instead of crashing
+                    continue
             else:
                 print(f"[WARNING] Model file not found: {filename}")
     
@@ -242,7 +256,8 @@ def predict():
         try:
             image_data = base64.b64decode(data['image'])
             image = Image.open(BytesIO(image_data))
-            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            image = np.array(image)
+            # Keep as RGB - model was trained on RGB images
         except Exception as e:
             return jsonify({
                 "error": f"Invalid image data: {str(e)}",
@@ -291,7 +306,8 @@ def compare_predictions():
         try:
             image_data = base64.b64decode(data['image'])
             image = Image.open(BytesIO(image_data))
-            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            image = np.array(image)
+            # Keep as RGB - model was trained on RGB images
         except Exception as e:
             return jsonify({
                 "error": f"Invalid image data: {str(e)}",

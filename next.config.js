@@ -6,8 +6,9 @@ const nextConfig = {
       // Enable server actions
       enabled: true,
     },
+    // Disable Turbopack due to compatibility issues
+    turbopack: false,
   },
-  turbopack: {},
   // Configure webpack for compatibility
   webpack: (config) => {
     config.watchOptions = {
